@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vigiloop": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop",
+      "args": ["mcp"]
+    }
+  }
+}

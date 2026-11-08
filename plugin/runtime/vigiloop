@@ -1,0 +1,11 @@
+#!/bin/sh
+# Runs the Vigiloop runtime built for this computer.
+dir=$(dirname "$0")
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) exec "$dir/vigiloop-darwin-arm64" "$@" ;;
+  Darwin-x86_64) exec "$dir/vigiloop-darwin-x64" "$@" ;;
+  Linux-x86_64) exec "$dir/vigiloop-linux-x64" "$@" ;;
+  Linux-aarch64 | Linux-arm64) exec "$dir/vigiloop-linux-arm64" "$@" ;;
+esac
+echo "vigiloop: there's no runtime for $(uname -s) $(uname -m) in $dir" >&2
+exit 1

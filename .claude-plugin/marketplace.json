@@ -1,0 +1,6 @@
+{
+  "name": "vigiloop",
+  "owner": { "name": "Vigiloop" },
+  "description": "Vigiloop: production alerts your Claude Code session fixes, verified by re-running the check.",
+  "plugins": [{ "name": "vigiloop", "source": "./plugin", "description": "Vigiloop alerts in your Claude Code session." }]
+}
