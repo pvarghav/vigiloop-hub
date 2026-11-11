@@ -14,7 +14,10 @@ then, in that session:
     /vigiloop:setup <server> <account email>
 
 for example `/vigiloop:setup vigiloop.example.com you@example.com`. It signs this computer in and
-pairs this folder with the account's project, and the session receives alerts right away. The
+pairs this folder with the account's project. Then choose which sessions take alerts: on the
+dashboard, open the agent node and switch a session on call. No session gets alerts until you do;
+the list shows each session's title, folder, computer, app and last use so you can pick the right
+one. The
 plugin has no server built in: you name it, and the account's address gets an email to approve
 this computer. The owner can instead open the `/device` link it prints on any device (a phone
 works). Approve only if the code matches.
