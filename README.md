@@ -6,7 +6,7 @@ tools and calls `resolve`; Vigiloop re-runs the check and only a passing run clo
 
 Set up, once per computer, from a terminal:
 
-    claude plugin install vigiloop --marketplace pvarghav/vigiloop-hub
+    claude plugin marketplace add pvarghav/vigiloop-hub && claude plugin install vigiloop@vigiloop
     claude
 
 then, in that session:
@@ -51,11 +51,11 @@ start a new session) so the plugin's server and hook load.
 
 On a computer with no screen (a server over SSH), sign in from the terminal:
 
-    claude plugin install vigiloop --marketplace pvarghav/vigiloop-hub
+    claude plugin marketplace add pvarghav/vigiloop-hub && claude plugin install vigiloop@vigiloop
     ~/.claude/plugins/marketplaces/vigiloop/plugin/runtime/vigiloop setup <server> <account email>
 
 then approve from the email or the printed link on another device.
 
-Runs on macOS (Apple silicon and Intel) and Linux (x64 and arm64). Works with your existing
+Runs on macOS (Apple silicon and Intel), Linux (x64 and arm64) and Windows (x64). Works with your existing
 Claude Code install. Vigiloop never sees your Claude credentials and never runs a model itself.
 

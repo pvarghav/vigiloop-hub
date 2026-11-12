@@ -26,7 +26,7 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
    - `heartbeat`: a cron job or worker pings `POST /in/heartbeat/<id>` each run; alerts when it goes quiet.
    - `webhook_expect`: an external sender (Stripe, GitHub…) keeps sending an event; needs a source with a signing secret.
    - `function`: your own TypeScript check for anything an HTTP check can't express (a logged-in flow, "orders in the last hour", a third-party API's state).
-   List the secrets the functions need by name and where each value comes from on this machine.
+   List the secrets the functions need by name and where each value comes from on this machine. Settings that aren't secret (base URLs, thresholds, regions, account ids) go in `vars`, written in the config.
 
 4. **Write the files.**
    `vigiloop.config.ts`:
@@ -37,6 +37,7 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
      project: { slug: "shop", name: "Shop", roles: { owner: "dev@example.com" } },
      functions: { orders: "./checks/orders.ts" },
      secrets: { SHOP_API_KEY: "env:SHOP_API_KEY" },
+     vars: { SHOP_API_URL: "https://shop.example.com/api" },
      monitors: [
        { key: "home", type: "http", name: "Homepage", config: { url: "https://shop.example.com/", expect: { status: [200], max_latency_ms: 1500 } } },
        { key: "orders", type: "function", name: "Orders flowing", interval_s: 300, config: { function: "orders", params: { minOrders: 5 } },
@@ -52,8 +53,9 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
      description: "Orders keep coming in",
      params: { minOrders: z.number().default(10) },
      secrets: ["SHOP_API_KEY"],
-     async run({ params, secrets, metric }) {
-       const res = await fetch("https://shop.example.com/api/orders?since=1h", { headers: { authorization: `Bearer ${secrets.SHOP_API_KEY}` } });
+     vars: ["SHOP_API_URL"],
+     async run({ params, secrets, vars, metric }) {
+       const res = await fetch(`${vars.SHOP_API_URL}/orders?since=1h`, { headers: { authorization: `Bearer ${secrets.SHOP_API_KEY}` } });
        if (!res.ok) throw new Error(`orders API returned ${res.status}`);
        const { count } = (await res.json()) as { count: number };
        metric("orders_last_hour", count);
@@ -67,7 +69,7 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
 
 6. **Dry run, then apply.** `vigiloop push` shows what would change; show it to the user. After they agree: `vigiloop push --apply`.
 
-7. **Prove every function works.** `vigiloop function test <key> --params '{...}'` runs it now with the project's secrets (not recorded, alerts nobody). Fix and push again until each returns what you expect, then report the results.
+7. **Prove every function works.** `vigiloop function test <key> --params '{...}'` runs it now with the project's variables and secrets (not recorded, alerts nobody). Fix and push again until each returns what you expect, then report the results.
 
 8. **Hand over.** Say what's being watched and how often; that the checks live in `vigiloop.config.ts` and `checks/` (offer to commit them); that `vigiloop push --apply` (locally or in CI with `VIGILOOP_TOKEN`) re-applies them; and that to have alerts fixed by an agent, they pick a session for the project's agent node on the Vigiloop dashboard.
 
@@ -100,4 +102,6 @@ Everything below is what `vigiloop.config.ts` accepts. You shouldn't need anythi
 
 **Secrets:** `secrets: { NAME: "env:VAR" | "file:path" }`. NAME is uppercase letters, digits and `_`. A function gets only the names it lists in `defineCheck({ secrets })`. `push` reports each one as created, updated or unchanged, and names any a function needs that has no value.
 
-**Commands:** `vigiloop push [--apply] [--prune]` (`--prune` deletes monitors and functions the config no longer lists), `vigiloop function test KEY [--params JSON]`, `vigiloop functions`, `vigiloop monitors`, `vigiloop secret set|list|delete`. All take `--project <slug>` when run outside the project folder.
+**Variables:** `vars: { NAME: "value" }` (strings, numbers or booleans; stored as strings). Plain project settings that every function in the project reads as `ctx.vars.NAME`; a function lists the ones it can't run without in `defineCheck({ vars })`, and a run without one is a runner error. Values are stored as written and shown on the dashboard, so never put a credential here (push warns about names like `*_KEY` or `*_TOKEN`). Where an input goes: differs per monitor → `params`; one setting for the project that a person may want to change without touching code → `vars`; anything secret → `secrets`. A person can change a variable on the dashboard or with `vigiloop var set NAME VALUE`; the next push sets variables the config lists back to the config's value.
+
+**Commands:** `vigiloop push [--apply] [--prune]` (`--prune` deletes monitors, functions and variables the config no longer lists), `vigiloop function test KEY [--params JSON]`, `vigiloop functions`, `vigiloop monitors`, `vigiloop var set|list|delete`, `vigiloop secret set|list|delete`. All take `--project <slug>` when run outside the project folder.
