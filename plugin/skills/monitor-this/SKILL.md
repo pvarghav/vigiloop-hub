@@ -70,3 +70,34 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
 7. **Prove every function works.** `vigiloop function test <key> --params '{...}'` runs it now with the project's secrets (not recorded, alerts nobody). Fix and push again until each returns what you expect, then report the results.
 
 8. **Hand over.** Say what's being watched and how often; that the checks live in `vigiloop.config.ts` and `checks/` (offer to commit them); that `vigiloop push --apply` (locally or in CI with `VIGILOOP_TOKEN`) re-applies them; and that to have alerts fixed by an agent, they pick a session for the project's agent node on the Vigiloop dashboard.
+
+## Reference
+
+Everything below is what `vigiloop.config.ts` accepts. You shouldn't need anything else.
+
+**Project:** `project: { slug, name, roles?: { owner: "a@b.com", oncall: "c@d.com" } }`. `slug` is lowercase letters, digits, `-` and `_`. Role addresses get `notify_role` actions and can sign in to the dashboard read-only (the account owner edits).
+
+**Every monitor:** `{ key, type, name, config, interval_s?: 60 (30 to 86400), enabled?: true, muted?: false, rules?: [...] }`. `key` is stable within the project (the monitor's id derives from it). Durations are a number of ms or a string like `"90s"`, `"10m"`, `"25h"`, `"7d"`.
+
+**Monitor types and their config:**
+- `http`: `{ url, method?: "GET", headers?: {}, body?: "", timeout_ms?: 10000, follow_redirects?: true, expect?: { status?: [200], body_contains?: "", body_not_contains?: "", header?: { name: value }, max_latency_ms?: 1500 } }`. Without `expect.status`, any status below 400 passes. Above `max_latency_ms` a run is degraded. Metrics: `latency_ms`, `ttfb_ms`, `status_code`.
+- `heartbeat`: `{ max_gap: "25h", grace_after_create?: "1h", active_hours?: { tz: "Europe/Stockholm", from: "08:00", to: "18:00" } }`. The job sends `POST https://<api>/in/heartbeat/<monitor id>` after each successful run (no auth, no body). `push` prints each heartbeat's exact URL, and `vigiloop monitors` shows it and the last ping. Put the URL in the job (an env var is best) and ping only after the work succeeded, so a crash shows up as silence. Set `max_gap` to the schedule plus slack (daily job: `"25h"`). Don't send test pings unless the user asks: a ping counts as a run. Metric: `age_s` (seconds since the last ping).
+- `webhook_expect`: `{ source: "<source name>", event_type: "invoice.paid", max_gap: "2h", grace_after_create?, active_hours? }`. Expects that event from that sender at least every `max_gap`. Needs a source (below), whose ingest URL `push` prints; the user registers it at the sender.
+- `function`: `{ function: "<key under functions>", params?: {}, timeout_ms?: 30000 (1000 to 60000) }`.
+
+**Webhook sources:** `sources: [{ name: "stripe", signature_scheme: "stripe" | "github" | "hmac_sha256" | "none", secret: "env:STRIPE_WEBHOOK_SECRET", event_type_path?: "type", idem_key_path?: "id" }]`. The signing secret is a reference like any other.
+
+**Rules** (when nothing is set: `consecutive` with `n: 2` for http and function, `absence` for heartbeat and webhook_expect, all emailing the owner). Every rule has `{ id, type, actions?: [{ kind: "email" }], high_risk?: false }`.
+- `consecutive`: `{ n: 2 }`. Fires after n failed runs in a row. Runner errors (a broken check, a timeout) neither count nor reset it.
+- `threshold`: `{ metric, op: ">" | ">=" | "<" | "<=", value }`. Fires while a run's metric crosses it.
+- `absence`: `{ max_gap? }`. Fires when a heartbeat or webhook goes quiet. `max_gap` overrides the monitor's.
+- `delta`: `{ metric, pct?: 50, abs?: 100, direction?: "up" | "down" | "any" }`. Fires when a metric moves that much from the previous run.
+- `high_risk: true` keeps agents out: a person handles it.
+- An alert notifies once when it opens and once when it resolves; runs in between send nothing. For problems that can persist (a credit balance running low, a certificate nearing expiry), add `remind_every: "24h"` to notify again while it lasts (people only; agents already have the alert). For values that hover around a threshold, `clear_after: 2` resolves only after two passing runs in a row.
+- Example, a balance a person tops up: `{ id: "low-balance", type: "threshold", metric: "balance_usd", op: "<", value: 20, actions: [{ kind: "email" }], remind_every: "24h", clear_after: 2 }`.
+
+**Actions:** `{ kind: "email", to?: ["a@b.com"] }` (default: the account owner), `{ kind: "notify_role", role: "oncall" }`, `{ kind: "webhook", url }` (POSTs the alert as JSON), `{ kind: "agent" }` (hands the alert to the Claude Code session picked for the project on the dashboard; it fixes the problem and Vigiloop re-runs the check before closing).
+
+**Secrets:** `secrets: { NAME: "env:VAR" | "file:path" }`. NAME is uppercase letters, digits and `_`. A function gets only the names it lists in `defineCheck({ secrets })`. `push` reports each one as created, updated or unchanged, and names any a function needs that has no value.
+
+**Commands:** `vigiloop push [--apply] [--prune]` (`--prune` deletes monitors and functions the config no longer lists), `vigiloop function test KEY [--params JSON]`, `vigiloop functions`, `vigiloop monitors`, `vigiloop secret set|list|delete`. All take `--project <slug>` when run outside the project folder.
