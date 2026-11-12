@@ -29,7 +29,8 @@ Two modes, set with `/vigiloop:setup ... --strict` or `/vigiloop:mode global|str
 - **global** (default): every session on this computer shows up. `/vigiloop:disable` hides one.
 - **strict**: only sessions you run `/vigiloop:enable` in show up.
 
-`/vigiloop:status` shows where things stand.
+`/vigiloop:status` shows where things stand. `/vigiloop:update` (or asking Claude to update
+Vigiloop) updates the plugin to the latest version; run `/reload-plugins` afterwards.
 
 ## Setting up monitoring
 
