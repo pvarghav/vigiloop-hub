@@ -19,8 +19,10 @@ instead open the `/device` link it prints on any device (a phone works). Approve
 matches.
 
 From then on, every Claude Code session on this computer shows up in Vigiloop, with its title,
-folder, computer and app. No session gets alerts until you pick one: on the dashboard, open a
-project's agent node and choose the session from the list (grouped by computer and folder).
+folder, computer and app. No session gets alerts until you pick one: on the dashboard, open an
+agent dispatch node and choose the session from the list (grouped by computer and folder), or ask
+the agent that set up monitoring to do it. A project can have several dispatch nodes, one per
+`agent` name in its rules (`{ kind: "agent", agent: "backend" }`), each with its own session.
 
 Two modes, set with `/vigiloop:setup ... --strict` or `/vigiloop:mode global|strict`:
 
