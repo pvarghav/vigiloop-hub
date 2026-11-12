@@ -1,7 +1,7 @@
 {
   "name": "vigiloop",
   "displayName": "Vigiloop",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Production alerts from Vigiloop land in your Claude Code session with the evidence and a repro, wake it even when idle, and close only when Vigiloop's re-run of the check passes.",
   "author": { "name": "Vigiloop" },
   "keywords": ["monitoring", "alerts", "incidents", "uptime", "webhooks"]

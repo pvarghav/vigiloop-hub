@@ -43,6 +43,7 @@ The binary: `"${CLAUDE_PLUGIN_ROOT}/runtime/vigiloop"` (below: `vigiloop`). Run 
        { key: "orders", type: "function", name: "Orders flowing", interval_s: 300, config: { function: "orders", params: { minOrders: 5 } },
          rules: [{ id: "down", type: "consecutive", n: 2 }, { id: "few", type: "threshold", metric: "orders_last_hour", op: "<", value: 5 }] },
      ],
+     groups: [{ title: "Storefront", monitors: ["home", "orders"] }],
    });
    ```
    A function (`checks/orders.ts`):
@@ -103,5 +104,7 @@ Everything below is what `vigiloop.config.ts` accepts. You shouldn't need anythi
 **Secrets:** `secrets: { NAME: "env:VAR" | "file:path" }`. NAME is uppercase letters, digits and `_`. A function gets only the names it lists in `defineCheck({ secrets })`. `push` reports each one as created, updated or unchanged, and names any a function needs that has no value.
 
 **Variables:** `vars: { NAME: "value" }` (strings, numbers or booleans; stored as strings). Plain project settings that every function in the project reads as `ctx.vars.NAME`; a function lists the ones it can't run without in `defineCheck({ vars })`, and a run without one is a runner error. Values are stored as written and shown on the dashboard, so never put a credential here (push warns about names like `*_KEY` or `*_TOKEN`). Where an input goes: differs per monitor → `params`; one setting for the project that a person may want to change without touching code → `vars`; anything secret → `secrets`. A person can change a variable on the dashboard or with `vigiloop var set NAME VALUE`; the next push sets variables the config lists back to the config's value.
+
+**Groups:** `groups: [{ title: "Checkout", monitors: ["cart", "payments"] }]` draws a titled outline on the dashboard canvas around those monitors' cards (their checks, conditions, and any action only they use). Group monitors that belong to one user-facing flow or one system, so a person can see at a glance what a failure touches. Listing `groups` makes the config's groups exactly these (`[]` removes them); leaving it out keeps the ones an earlier push set. Groups a person draws on the dashboard are never touched.
 
 **Commands:** `vigiloop push [--apply] [--prune]` (`--prune` deletes monitors, functions and variables the config no longer lists), `vigiloop function test KEY [--params JSON]`, `vigiloop functions`, `vigiloop monitors`, `vigiloop var set|list|delete`, `vigiloop secret set|list|delete`. All take `--project <slug>` when run outside the project folder.
